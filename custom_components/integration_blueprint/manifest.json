@@ -1,12 +1,12 @@
 {
-  "domain": "integration_blueprint",
-  "name": "Integration blueprint",
+  "domain": "away_scheduler",
+  "name": "Away Scheduler",
   "codeowners": [
-    "@ludeeus"
+    "@mrtncode"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/ludeeus/integration_blueprint",
+  "documentation": "https://github.com/mmrtncode/ha-away-scheduler",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/ludeeus/integration_blueprint/issues",
+  "issue_tracker": "https://github.com/mmrtncode/ha-away-scheduler/issues",
   "version": "0.1.0"
 }
