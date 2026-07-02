@@ -3,9 +3,11 @@
 ## Plan
 - automatic control/ time calculation
 -> Sun position/ light, randomness, defined time intervals, status of other devices
+- sensor entity that shows status
 - Automatic action calls (to control light, switch, ..)
 - Notifications (action calls to notify services + event entity)
-- Test mode (quick on and off)
+- Switch to control scheduler (activate/ deactivate)
+- Test mode (with switch entity) (quick on and off)
 
 ## Details
 Global settings:
