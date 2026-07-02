@@ -43,6 +43,18 @@ async def async_setup_entry(
         name=DOMAIN,
         update_interval=timedelta(hours=1),
     )
+    coordinator.config_entry = entry
+
+    integration = async_get_loaded_integration(hass, DOMAIN)
+    entry.runtime_data = IntegrationBlueprintData(
+        client=IntegrationBlueprintApiClient(
+            username=entry.data.get(CONF_USERNAME, ""),
+            password=entry.data.get(CONF_PASSWORD, ""),
+            session=async_get_clientsession(hass),
+        ),
+        coordinator=coordinator,
+        integration=integration,
+    )
 
     # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
     await coordinator.async_config_entry_first_refresh()

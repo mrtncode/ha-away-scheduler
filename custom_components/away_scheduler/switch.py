@@ -48,13 +48,13 @@ class IntegrationBlueprintSwitch(IntegrationBlueprintEntity, SwitchEntity):
         entity_description: SwitchEntityDescription,
     ) -> None:
         """Initialize the switch class."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, f"switch_{entity_description.key}")
         self.entity_description = entity_description
 
     @property
     def is_on(self) -> bool:
         """Return true if the switch is on."""
-        return self.coordinator.data.get("title", "") == "foo"
+        return (self.coordinator.data or {}).get("title", "") == "foo"
 
     async def async_turn_on(self, **_: Any) -> None:
         """Turn on the switch."""

@@ -48,10 +48,10 @@ class IntegrationBlueprintSensor(IntegrationBlueprintEntity, SensorEntity):
         entity_description: SensorEntityDescription,
     ) -> None:
         """Initialize the sensor class."""
-        super().__init__(coordinator)
+        super().__init__(coordinator, f"sensor_{entity_description.key}")
         self.entity_description = entity_description
 
     @property
     def native_value(self) -> str | None:
         """Return the native value of the sensor."""
-        return self.coordinator.data.get("body")
+        return (self.coordinator.data or {}).get("body")
