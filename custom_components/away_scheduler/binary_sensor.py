@@ -10,7 +10,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntityDescription,
 )
 
-from .entity import IntegrationBlueprintEntity
+from .entity import SchedulerBaseEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -43,7 +43,7 @@ async def async_setup_entry(
     )
 
 
-class IntegrationBlueprintBinarySensor(IntegrationBlueprintEntity, BinarySensorEntity):
+class IntegrationBlueprintBinarySensor(SchedulerBaseEntity, BinarySensorEntity):
     """integration_blueprint binary_sensor class."""
 
     def __init__(
