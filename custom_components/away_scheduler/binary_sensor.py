@@ -2,15 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
+from homeassistant.helpers.device_registry import DeviceInfo
 
 from .entity import SchedulerBaseEntity
+from .const import MASTER_SUBENTRY_TYPE
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -34,12 +36,27 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the binary_sensor platform."""
+    master_subentry = next(
+        (
+            subentry
+            for subentry in entry.subentries.values()
+            if subentry.subentry_type == MASTER_SUBENTRY_TYPE
+        ),
+        None,
+    )
+
+    if master_subentry is None:
+        return
+
     async_add_entities(
-        AwaySchedulerBinarySensor(
-            coordinator=entry.runtime_data.coordinator,
-            entity_description=entity_description,
-        )
-        for entity_description in ENTITY_DESCRIPTIONS
+        [
+            AwaySchedulerBinarySensor(
+                coordinator=entry.runtime_data.coordinator,
+                entity_description=ENTITY_DESCRIPTIONS[0],
+                subentry=master_subentry,
+            )
+        ],
+        config_subentry_id=master_subentry.subentry_id,
     )
 
 
@@ -50,10 +67,23 @@ class AwaySchedulerBinarySensor(SchedulerBaseEntity, BinarySensorEntity):
         self,
         coordinator: SchedulerDatUpdateCoordinator,
         entity_description: BinarySensorEntityDescription,
+        subentry: Any | None = None,
     ) -> None:
         """Initialize the binary_sensor class."""
         super().__init__(coordinator, f"binary_sensor_{entity_description.key}")
         self.entity_description = entity_description
+        self._subentry = subentry
+
+        if subentry is not None:
+            self._attr_device_info = DeviceInfo(
+                identifiers={
+                    (
+                        coordinator.config_entry.domain,
+                        coordinator.config_entry.entry_id,
+                    ),
+                },
+                name=subentry.title,
+            )
 
     @property
     def is_on(self) -> bool:
