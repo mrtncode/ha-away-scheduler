@@ -16,7 +16,7 @@ from homeassistant.loader import async_get_loaded_integration
 
 from .api import IntegrationBlueprintApiClient
 from .const import DOMAIN, LOGGER
-from .coordinator import BlueprintDataUpdateCoordinator
+from .coordinator import SchedulerDatUpdateCoordinator
 from .data import IntegrationBlueprintData
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ async def async_setup_entry(
     entry: IntegrationBlueprintConfigEntry,
 ) -> bool:
     """Set up this integration using UI."""
-    coordinator = BlueprintDataUpdateCoordinator(
+    coordinator = SchedulerDatUpdateCoordinator(
         hass=hass,
         logger=LOGGER,
         name=DOMAIN,
@@ -47,13 +47,9 @@ async def async_setup_entry(
 
     integration = async_get_loaded_integration(hass, DOMAIN)
     entry.runtime_data = IntegrationBlueprintData(
-        client=IntegrationBlueprintApiClient(
-            username=entry.data.get(CONF_USERNAME, ""),
-            password=entry.data.get(CONF_PASSWORD, ""),
-            session=async_get_clientsession(hass),
-        ),
         coordinator=coordinator,
         integration=integration,
+        scheduler_enabled=entry.options.get("scheduler_enabled", True),
     )
 
     # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities

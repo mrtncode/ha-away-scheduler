@@ -1,4 +1,4 @@
-"""Custom types for integration_blueprint."""
+"""Custom types for away scheduler."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from homeassistant.loader import Integration
 
     from .api import IntegrationBlueprintApiClient
-    from .coordinator import BlueprintDataUpdateCoordinator
+    from .coordinator import SchedulerDatUpdateCoordinator
 
 
 type IntegrationBlueprintConfigEntry = ConfigEntry[IntegrationBlueprintData]
@@ -20,7 +20,6 @@ type IntegrationBlueprintConfigEntry = ConfigEntry[IntegrationBlueprintData]
 class IntegrationBlueprintData:
     """Data for the Blueprint integration."""
 
-    client: IntegrationBlueprintApiClient
-    coordinator: BlueprintDataUpdateCoordinator
+    coordinator: SchedulerDatUpdateCoordinator
     integration: Integration
     scheduler_enabled: bool

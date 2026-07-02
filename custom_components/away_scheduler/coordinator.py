@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 
 # https://developers.home-assistant.io/docs/integration_fetching_data#coordinated-single-api-poll-for-data-for-all-entities
-class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
+class SchedulerDatUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
     config_entry: IntegrationBlueprintConfigEntry
@@ -25,8 +25,13 @@ class BlueprintDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> Any:
         """Update data via library."""
         try:
-            return await self.config_entry.runtime_data.client.async_get_data()
+            return await self.config_entry.runtime_data.coordinator.async_get_data()
         except IntegrationBlueprintApiClientAuthenticationError as exception:
             raise ConfigEntryAuthFailed(exception) from exception
         except IntegrationBlueprintApiClientError as exception:
             raise UpdateFailed(exception) from exception
+
+    async def async_get_data(self) -> Any:
+        """Fetch data from API."""
+        # Update data here (data scheduler_enabled true)
+        return {"title": "foo", "body": "bar"}

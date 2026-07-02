@@ -1,4 +1,4 @@
-"""Binary sensor platform for integration_blueprint."""
+"""Binary sensor platform for away_scheduler."""
 
 from __future__ import annotations
 
@@ -16,13 +16,13 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import BlueprintDataUpdateCoordinator
+    from .coordinator import SchedulerDatUpdateCoordinator
     from .data import IntegrationBlueprintConfigEntry
 
 ENTITY_DESCRIPTIONS = (
     BinarySensorEntityDescription(
-        key="integration_blueprint",
-        name="Integration Blueprint Binary Sensor",
+        key="away_scheduler",
+        name="Away Scheduler Binary Sensor",
         device_class=BinarySensorDeviceClass.CONNECTIVITY,
     ),
 )
@@ -35,7 +35,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up the binary_sensor platform."""
     async_add_entities(
-        IntegrationBlueprintBinarySensor(
+        AwaySchedulerBinarySensor(
             coordinator=entry.runtime_data.coordinator,
             entity_description=entity_description,
         )
@@ -43,12 +43,12 @@ async def async_setup_entry(
     )
 
 
-class IntegrationBlueprintBinarySensor(SchedulerBaseEntity, BinarySensorEntity):
-    """integration_blueprint binary_sensor class."""
+class AwaySchedulerBinarySensor(SchedulerBaseEntity, BinarySensorEntity):
+    """away_scheduler binary_sensor class."""
 
     def __init__(
         self,
-        coordinator: BlueprintDataUpdateCoordinator,
+        coordinator: SchedulerDatUpdateCoordinator,
         entity_description: BinarySensorEntityDescription,
     ) -> None:
         """Initialize the binary_sensor class."""

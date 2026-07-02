@@ -6,15 +6,17 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTRIBUTION
-from .coordinator import BlueprintDataUpdateCoordinator
+from .coordinator import SchedulerDatUpdateCoordinator
 
 
-class SchedulerBaseEntity(CoordinatorEntity[BlueprintDataUpdateCoordinator]):
+class SchedulerBaseEntity(CoordinatorEntity[SchedulerDatUpdateCoordinator]):
     """BlueprintEntity class."""
 
     _attr_attribution = ATTRIBUTION
 
-    def __init__(self, coordinator: BlueprintDataUpdateCoordinator, entity_key: str) -> None:
+    def __init__(
+        self, coordinator: SchedulerDatUpdateCoordinator, entity_key: str
+    ) -> None:
         """Initialize."""
         super().__init__(coordinator)
         self._attr_unique_id = f"{coordinator.config_entry.entry_id}_{entity_key}"

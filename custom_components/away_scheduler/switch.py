@@ -1,4 +1,4 @@
-"""Switch platform for integration_blueprint."""
+"""Switch platform for away_scheduler."""
 
 from __future__ import annotations
 
@@ -12,13 +12,13 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-    from .coordinator import BlueprintDataUpdateCoordinator
+    from .coordinator import SchedulerDatUpdateCoordinator
     from .data import IntegrationBlueprintConfigEntry
 
 ENTITY_DESCRIPTIONS = (
     SwitchEntityDescription(
-        key="integration_blueprint",
-        name="Integration Switch",
+        key="away_scheduler",
+        name="Away Scheduler",
         icon="mdi:format-quote-close",
     ),
 )
@@ -40,11 +40,11 @@ async def async_setup_entry(
 
 
 class SchedulerSwitch(SchedulerBaseEntity, SwitchEntity):
-    """integration_blueprint switch class."""
+    """away_scheduler switch class."""
 
     def __init__(
         self,
-        coordinator: BlueprintDataUpdateCoordinator,
+        coordinator: SchedulerDatUpdateCoordinator,
         entity_description: SwitchEntityDescription,
     ) -> None:
         """Initialize the switch class."""
@@ -58,13 +58,12 @@ class SchedulerSwitch(SchedulerBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **_: Any) -> None:
         """Turn on the switch."""
-        await self.coordinator.config_entry.runtime_data.client.async_set_title("bar")
+
         # Update data here (data scheduler_enabled true)
         self.coordinator.data["scheduler_enabled"] = True
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **_: Any) -> None:
         """Turn off the switch."""
-        await self.coordinator.config_entry.runtime_data.client.async_set_title("foo")
         self.coordinator.data["scheduler_enabled"] = False
         await self.coordinator.async_request_refresh()
