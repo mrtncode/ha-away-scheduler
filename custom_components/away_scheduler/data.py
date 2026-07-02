@@ -23,3 +23,4 @@ class IntegrationBlueprintData:
     client: IntegrationBlueprintApiClient
     coordinator: BlueprintDataUpdateCoordinator
     integration: Integration
+    scheduler_enabled: bool

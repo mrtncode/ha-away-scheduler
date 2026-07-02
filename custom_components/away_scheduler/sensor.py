@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from homeassistant.components.sensor import SensorEntity, SensorEntityDescription
 
-from .entity import IntegrationBlueprintEntity
+from .entity import SchedulerBaseEntity
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -39,7 +39,7 @@ async def async_setup_entry(
     )
 
 
-class IntegrationBlueprintSensor(IntegrationBlueprintEntity, SensorEntity):
+class IntegrationBlueprintSensor(SchedulerBaseEntity, SensorEntity):
     """integration_blueprint Sensor class."""
 
     def __init__(
