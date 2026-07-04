@@ -55,17 +55,23 @@ class MasterSchedulerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class GroupSubentryFlowHandler(config_entries.ConfigSubentryFlow):
-    """Handle adding/editing scheduling groups."""
+    """Handle adding/editing scheduling groups with dynamic per-device naming."""
+
+    def __init__(self) -> None:
+        """Initialize the subentry flow."""
+        self._init_data: dict[str, Any] = {}
 
     async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
         """Handle reconfiguration of an existing group."""
         return await self.async_step_user(user_input)
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        """Add or update a scheduling group."""
+        """Step 1: Manage the group name and selected devices."""
         errors = {}
         parent_entry = self._get_entry()
         subentry_id = getattr(self, "subentry_id", None) or self.context.get("subentry_id")
+
+        current_data = parent_entry.subentries[subentry_id].data if subentry_id and subentry_id in parent_entry.subentries else {}
 
         if user_input is not None:
             group_name = user_input["name"]
@@ -76,24 +82,69 @@ class GroupSubentryFlowHandler(config_entries.ConfigSubentryFlow):
                     break
 
             if not errors:
-                return self.async_create_entry(
-                    title=f"Group: {group_name}",
-                    data={
-                        **user_input,
-                        "subentry_type": "scheduler_group"
-                    }
-                )
-
-        current_data = parent_entry.subentries[subentry_id].data if subentry_id and subentry_id in parent_entry.subentries else {}
+                self._init_data.update(user_input)
+                return await self.async_step_device_names()
 
         schema = vol.Schema({
             vol.Required("name", default=current_data.get("name")): TextSelector(),
-
             vol.Required("devices", default=current_data.get("devices", [])): EntitySelector(
                 EntitySelectorConfig(multiple=True)
             ),
+        })
 
-            vol.Required("sunset_offset_range", default=current_data.get("sunset_offset_range")): DurationSelector(),
+        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+
+    async def async_step_device_names(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Step 2: Dynamically request a custom name for every selected device."""
+        parent_entry = self._get_entry()
+        subentry_id = getattr(self, "subentry_id", None) or self.context.get("subentry_id")
+        current_data = parent_entry.subentries[subentry_id].data if subentry_id and subentry_id in parent_entry.subentries else {}
+
+        existing_custom_names = current_data.get("custom_names", {})
+
+        selected_devices = self._init_data.get("devices", [])
+
+        if user_input is not None:
+            self._init_data["custom_names"] = user_input
+            return await self.async_step_config()
+
+        fields = {}
+        for entity_id in selected_devices:
+            friendly_default = entity_id.split(".")[-1].replace("_", " ").title()
+            current_custom_name = existing_custom_names.get(entity_id, friendly_default)
+
+            fields[vol.Optional(entity_id, default=current_custom_name)] = TextSelector()
+
+        return self.async_show_form(
+            step_id="device_names",
+            data_schema=vol.Schema(fields)
+        )
+
+    async def async_step_config(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Step 3: Fine-tune the scheduling behaviors."""
+        parent_entry = self._get_entry()
+        subentry_id = getattr(self, "subentry_id", None) or self.context.get("subentry_id")
+        current_data = parent_entry.subentries[subentry_id].data if subentry_id and subentry_id in parent_entry.subentries else {}
+
+        if user_input is not None:
+            final_data = {
+                **self._init_data,
+                **user_input,
+                "subentry_type": "scheduler_group"
+            }
+
+            if "device_states" in current_data:
+                final_data["device_states"] = current_data["device_states"]
+
+            return self.async_create_entry(
+                title=f"Group: {final_data['name']}",
+                data=final_data
+            )
+
+        default_offset = current_data.get("sunset_offset_range", {"minutes": 0})
+
+        schema = vol.Schema({
+            vol.Required("sunset_offset_range", default=default_offset): DurationSelector(),
             vol.Required("duration", default=current_data.get("duration", "mid")): SelectSelector(
                 SelectSelectorConfig(options=["short", "mid", "long", "custom"], mode=SelectSelectorMode.DROPDOWN)
             ),
@@ -105,4 +156,4 @@ class GroupSubentryFlowHandler(config_entries.ConfigSubentryFlow):
             ),
         })
 
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(step_id="config", data_schema=schema)
