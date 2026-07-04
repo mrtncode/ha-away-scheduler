@@ -8,23 +8,40 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, ConfigSubentryFlow, ConfigFlowResult, SubentryFlowResult
 from homeassistant.core import callback
-from homeassistant.helpers.selector import EntitySelector, EntitySelectorConfig, TimeSelector
+from homeassistant.helpers.selector import (
+    EntitySelector,
+    EntitySelectorConfig,
+    TextSelector,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+    DurationSelector,
+)
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN
 
 
-class MasterSchedulerFlowHandler(config_entries.ConfigFlow, domain="away_scheduler"):
+class MasterSchedulerFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle the global master config flow."""
 
     async def async_step_user(self, user_input=None) -> ConfigFlowResult:
-        """Create the singular master hub instance."""
+        """Create the singular master hub instance and select Sun entity."""
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
-            return self.async_create_entry(title="Device Scheduler Master", data={})
+            return self.async_create_entry(
+                title="Device Scheduler Master",
+                data={"sun_entity": user_input["sun_entity"]}
+            )
 
-        return self.async_show_form(step_id="user")
+        schema = vol.Schema({
+            vol.Required("sun_entity", default="sun.sun"): EntitySelector(
+                EntitySelectorConfig(domain="sun")
+            ),
+        })
+
+        return self.async_show_form(step_id="user", data_schema=schema)
 
     @classmethod
     @callback
@@ -32,41 +49,60 @@ class MasterSchedulerFlowHandler(config_entries.ConfigFlow, domain="away_schedul
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
         """Return subentries supported by this integration."""
-        return {"device_schedule": DeviceScheduleSubentryFlowHandler}
+        return {
+            "scheduler_group": GroupSubentryFlowHandler,
+        }
 
 
-class DeviceScheduleSubentryFlowHandler(config_entries.ConfigSubentryFlow):
-    """Handle adding/editing schedules for specific devices."""
+class GroupSubentryFlowHandler(config_entries.ConfigSubentryFlow):
+    """Handle adding/editing scheduling groups."""
+
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
+        """Handle reconfiguration of an existing group."""
+        return await self.async_step_user(user_input)
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> SubentryFlowResult:
-        """Add a specific device scheduling target."""
+        """Add or update a scheduling group."""
         errors = {}
-        # Fetch parent config entry context natively using the 2025 helper method
         parent_entry = self._get_entry()
+        subentry_id = getattr(self, "subentry_id", None) or self.context.get("subentry_id")
 
         if user_input is not None:
-            target_device = user_input["device_entity"]
+            group_name = user_input["name"]
 
-            # Manually check for subentry collisions
-            for subentry in parent_entry.subentries.values():
-                if subentry.data.get("device_entity") == target_device:
-                    errors["base"] = "already_configured"
+            for sid, subentry in parent_entry.subentries.items():
+                if subentry.data.get("subentry_type") == "scheduler_group" and subentry.data.get("name") == group_name and sid != subentry_id:
+                    errors["base"] = "group_already_exists"
                     break
 
             if not errors:
-                # Subentry creation uses async_create_entry natively
-                # Providing subentry_type allows Home Assistant to distinguish child data profiles
                 return self.async_create_entry(
-                    title=f"Schedule for {target_device}",
+                    title=f"Group: {group_name}",
                     data={
                         **user_input,
-                        "subentry_type": "device_schedule"
+                        "subentry_type": "scheduler_group"
                     }
                 )
 
+        current_data = parent_entry.subentries[subentry_id].data if subentry_id and subentry_id in parent_entry.subentries else {}
+
         schema = vol.Schema({
-            vol.Required("device_entity"): EntitySelector(EntitySelectorConfig()),
-            vol.Required("start_time"): TimeSelector(),
-            vol.Required("end_time"): TimeSelector(),
+            vol.Required("name", default=current_data.get("name")): TextSelector(),
+
+            vol.Required("devices", default=current_data.get("devices", [])): EntitySelector(
+                EntitySelectorConfig(multiple=True)
+            ),
+
+            vol.Required("sunset_offset_range", default=current_data.get("sunset_offset_range")): DurationSelector(),
+            vol.Required("duration", default=current_data.get("duration", "mid")): SelectSelector(
+                SelectSelectorConfig(options=["short", "mid", "long", "custom"], mode=SelectSelectorMode.DROPDOWN)
+            ),
+            vol.Required("randomness_level", default=current_data.get("randomness_level", "mid")): SelectSelector(
+                SelectSelectorConfig(options=["low", "mid", "high"], mode=SelectSelectorMode.LIST)
+            ),
+            vol.Required("activity_level", default=current_data.get("activity_level", "mid")): SelectSelector(
+                SelectSelectorConfig(options=["low", "mid", "high"], mode=SelectSelectorMode.LIST)
+            ),
         })
+
         return self.async_show_form(step_id="user", data_schema=schema, errors=errors)

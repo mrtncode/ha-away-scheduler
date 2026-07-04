@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from homeassistant.config_entries import ConfigSubentry
 from homeassistant.const import Platform
 from homeassistant.loader import async_get_loaded_integration
+from homeassistant.helpers import device_registry as dr
 
 from .const import DOMAIN, LOGGER, MASTER_SUBENTRY_TYPE
 from .coordinator import SchedulerDatUpdateCoordinator
@@ -20,7 +21,6 @@ from .data import IntegrationBlueprintData
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
-
     from .data import IntegrationBlueprintConfigEntry
 
 PLATFORMS: list[Platform] = [
@@ -60,8 +60,8 @@ def _ensure_master_subentry(
             subentry_type=MASTER_SUBENTRY_TYPE,
             title=MASTER_SUBENTRY_TITLE,
             unique_id=MASTER_SUBENTRY_TYPE,
-        ),
-    )
+            ),
+        )
 
 
 # https://developers.home-assistant.io/docs/config_entries_index/#setting-up-an-entry
@@ -99,6 +99,34 @@ async def async_setup_entry(
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
+    return True
+
+
+async def async_setup_subentry(
+    hass: HomeAssistant,
+    entry: IntegrationBlueprintConfigEntry,
+    subentry: ConfigSubentry,
+) -> bool:
+    """Set up a subentry and register its devices."""
+
+    if subentry.subentry_type == "scheduler_group":
+        group_name = subentry.data.get("name", subentry.title)
+        devices = subentry.data.get("devices", [])
+
+        dev_reg = dr.async_get(hass)
+
+        for entity_id in devices:
+            friendly_name = entity_id.split(".")[-1].replace("_", " ").title()
+
+            dev_reg.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                config_subentry_id=subentry.subentry_id,
+                identifiers={(DOMAIN, f"{subentry.subentry_id}_{entity_id}")},
+                name=f"{group_name} - {friendly_name}",
+                manufacturer="Master Scheduler",
+                model="Scheduled Member",
+            )
 
     return True
 
